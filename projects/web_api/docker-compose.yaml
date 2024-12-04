@@ -1,0 +1,17 @@
+services:
+  edms_ocr:
+    image: registry.cn-hangzhou.aliyuncs.com/sae-build-1097168472679944/edms_ocr:0.0.10.1
+    container_name: edms_ocr
+    tty: true  # -it 相当于这里设置 tty: true 和 stdin_open: true
+    stdin_open: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ '0' ]
+              capabilities: [ gpu ]
+      ports:
+        - "10089:8000"  # -p 10089:8000
+      volumes:
+        - ./magic-pdf.json:/root/magic-pdf.json
