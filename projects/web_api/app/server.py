@@ -9,15 +9,14 @@ from fastapi.responses import JSONResponse,StreamingResponse
 from loguru import logger
 
 import magic_pdf.model as model_config
-from magic_pdf.data import io
 from magic_pdf.data.data_reader_writer import FileBasedDataWriter
 from magic_pdf.pipe.OCRPipe import OCRPipe
 from magic_pdf.pipe.TXTPipe import TXTPipe
 from magic_pdf.pipe.UNIPipe import UNIPipe
 
-model_config.__use_inside_model__ = True
+from app.pdf2image import pdf_to_images
 
-from projects.web_api.code import pdf2image
+model_config.__use_inside_model__ = True
 
 app = FastAPI()
 
@@ -179,7 +178,7 @@ async def pdf_parse_to_image(
 
         output_image_path = os.path.join(output_path, 'images')
 
-        images = pdf2image.pdf_to_images(temp_pdf_path, output_path, start_page, end_page, dpi)
+        images = pdf_to_images(temp_pdf_path, output_path, start_page, end_page, dpi)
 
         if not images:
             return {"message": "No images generated"}

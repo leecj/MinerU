@@ -69,10 +69,12 @@ RUN /bin/bash -c "source /opt/mineru_venv/bin/activate && \
 #COPY magic-pdf.template.json /root/magic-pdf.json
 #ADD models /opt/models
 #ADD .paddleocr /root/.paddleocr
-ADD code /root/code
-ADD app.py /root/app.py
-
+#ADD app/code /root/code
+#ADD app/server.py /root/server.py
 WORKDIR /root
+
+ADD ./app ./app
+
 
 # Set the models directory in the configuration file (adjust the path as needed)
 # RUN sed -i 's|/tmp/models|/opt/models|g' /root/magic-pdf.json
@@ -81,11 +83,11 @@ WORKDIR /root
 # RUN mkdir -p /opt/models
 
 # Set the entry point to activate the virtual environment and run the command line tool
-# ENTRYPOINT ["/bin/bash", "-c", "source /opt/mineru_venv/bin/activate && exec \"$@\" && python3 app.py", "--"]
+# ENTRYPOINT ["/bin/bash", "-c", "source /opt/mineru_venv/bin/activate && exec \"$@\" && python3 server.py", "--"]
 
 
 # Expose the port that FastAPI will run on
 EXPOSE 8000
 
-# Command to run FastAPI using Uvicorn, pointing to app.py and binding to 0.0.0.0:8000
-CMD ["/bin/bash", "-c", "source /opt/mineru_venv/bin/activate && uvicorn app:app --host 0.0.0.0 --port 8000"]
+# Command to run FastAPI using Uvicorn, pointing to server.py and binding to 0.0.0.0:8000
+CMD ["/bin/bash", "-c", "source /opt/mineru_venv/bin/activate && uvicorn app.server:app --host 0.0.0.0 --port 8000"]
