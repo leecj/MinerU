@@ -48,6 +48,7 @@ def pdf_to_images(pdf_path, output_folder, start_page=0, end_page=None, dpi=300)
         image_stream = io.BytesIO(encoded_image.tobytes())
         image_stream.seek(0)  # 重置指针到流的开头
         images.append(image_stream)
+        # cv2.imwrite(output_path, img_gray)
 
     return images
 
@@ -55,4 +56,5 @@ def pdf_to_images(pdf_path, output_folder, start_page=0, end_page=None, dpi=300)
 # pdf_to_images("/Users/lee/Downloads/倾斜文件/scan_20010104031321_18.pdf", "/Users/lee/Downloads/tempimg")
 # pdf_to_images("/Users/lee/Downloads/scan_20010104031321_8.pdf", "/Users/lee/Downloads/tempimg")
 # pdf_to_images("/Users/lee/Downloads/Scan_0001_2.pdf", "/Users/lee/Downloads/tempimg")
+# pdf_to_images("/Users/lee/Downloads/不锈钢孔板波纹填料 HG_T 21559.2-2005 (1).pdf", "/Users/lee/Downloads/tempimg",0,1)
 
