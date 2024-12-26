@@ -13,7 +13,7 @@
     },
     "models-dir": "/root/.cache/modelscope/hub/opendatalab/PDF-Extract-Kit-1___0/models",
     "layoutreader-model-dir": "/root/.cache/modelscope/hub/ppaanngggg/layoutreader",
-    "device-mode": "cpu",
+    "device-mode": "cuda",
     "layout-config": {
         "model": "layoutlmv3"
     },

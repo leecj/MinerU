@@ -2,10 +2,11 @@ import copy
 import json
 import os
 from tempfile import NamedTemporaryFile
+from urllib.parse import quote
 
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse,StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from loguru import logger
 
 import magic_pdf.model as model_config
@@ -102,14 +103,16 @@ async def pdf_parse_main(
             output_image_path
         ), FileBasedDataWriter(output_path)
 
+        lang = 'ch'
+
         # Choose parsing method
         if parse_method == 'auto':
             jso_useful_key = {'_pdf_type': '', 'model_list': model_json}
-            pipe = UNIPipe(pdf_bytes, jso_useful_key, image_writer)
+            pipe = UNIPipe(pdf_bytes, jso_useful_key, image_writer, lang=lang)
         elif parse_method == 'txt':
-            pipe = TXTPipe(pdf_bytes, model_json, image_writer)
+            pipe = TXTPipe(pdf_bytes, model_json, image_writer, lang=lang)
         elif parse_method == 'ocr':
-            pipe = OCRPipe(pdf_bytes, model_json, image_writer)
+            pipe = OCRPipe(pdf_bytes, model_json, image_writer, lang=lang)
         else:
             logger.error('Unknown parse method, only auto, ocr, txt allowed')
             return JSONResponse(
@@ -184,7 +187,8 @@ async def pdf_parse_to_image(
             return {"message": "No images generated"}
 
         return StreamingResponse(images[0], media_type="image/png",
-                                 headers={"Content-Disposition": f"attachment; filename={pdf_file.filename}.png"})
+                                 headers={
+                                     "Content-Disposition": f"attachment; filename={quote(pdf_file.filename)}.png"})
 
     except Exception as e:
         logger.exception(e)
