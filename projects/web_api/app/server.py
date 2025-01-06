@@ -2,10 +2,11 @@ import copy
 import json
 import os
 from tempfile import NamedTemporaryFile
+from urllib.parse import quote
 
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from loguru import logger
 
 import magic_pdf.model as model_config
@@ -14,17 +15,19 @@ from magic_pdf.pipe.OCRPipe import OCRPipe
 from magic_pdf.pipe.TXTPipe import TXTPipe
 from magic_pdf.pipe.UNIPipe import UNIPipe
 
+from app.pdf2image import pdf_to_images
+
 model_config.__use_inside_model__ = True
 
 app = FastAPI()
 
 
 def json_md_dump(
-    pipe,
-    md_writer,
-    pdf_name,
-    content_list,
-    md_content,
+        pipe,
+        md_writer,
+        pdf_name,
+        content_list,
+        md_content,
 ):
     # Write model results to model.json
     orig_model_list = copy.deepcopy(pipe.model_list)
@@ -54,11 +57,11 @@ def json_md_dump(
 
 @app.post('/pdf_parse', tags=['projects'], summary='Parse PDF file')
 async def pdf_parse_main(
-    pdf_file: UploadFile = File(...),
-    parse_method: str = 'auto',
-    model_json_path: str = None,
-    is_json_md_dump: bool = True,
-    output_dir: str = 'output',
+        pdf_file: UploadFile = File(...),
+        parse_method: str = 'auto',
+        model_json_path: str = None,
+        is_json_md_dump: bool = True,
+        output_dir: str = 'output',
 ):
     """Execute the process of converting PDF to JSON and MD, outputting MD and
     JSON files to the specified directory.
@@ -100,14 +103,16 @@ async def pdf_parse_main(
             output_image_path
         ), FileBasedDataWriter(output_path)
 
+        lang = 'ch'
+
         # Choose parsing method
         if parse_method == 'auto':
             jso_useful_key = {'_pdf_type': '', 'model_list': model_json}
-            pipe = UNIPipe(pdf_bytes, jso_useful_key, image_writer)
+            pipe = UNIPipe(pdf_bytes, jso_useful_key, image_writer, lang=lang)
         elif parse_method == 'txt':
-            pipe = TXTPipe(pdf_bytes, model_json, image_writer)
+            pipe = TXTPipe(pdf_bytes, model_json, image_writer, lang=lang)
         elif parse_method == 'ocr':
-            pipe = OCRPipe(pdf_bytes, model_json, image_writer)
+            pipe = OCRPipe(pdf_bytes, model_json, image_writer, lang=lang)
         else:
             logger.error('Unknown parse method, only auto, ocr, txt allowed')
             return JSONResponse(
@@ -143,6 +148,47 @@ async def pdf_parse_main(
             'md_content': md_content,
         }
         return JSONResponse(data, status_code=200)
+
+    except Exception as e:
+        logger.exception(e)
+        return JSONResponse(content={'error': str(e)}, status_code=500)
+    finally:
+        # Clean up the temporary file
+        if 'temp_pdf_path' in locals():
+            os.unlink(temp_pdf_path)
+
+
+@app.post('/pdf_2_image', tags=['projects'], summary='Parse PDF file to image')
+async def pdf_parse_to_image(
+        pdf_file: UploadFile = File(...),
+        start_page: int = 0,
+        end_page: int = None,
+        dpi: int = 300,
+        output_dir: str = 'output',
+):
+    try:
+        # Create a temporary file to store the uploaded PDF
+        with NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+            temp_pdf.write(await pdf_file.read())
+            temp_pdf_path = temp_pdf.name
+
+        pdf_name = os.path.basename(pdf_file.filename).split('.')[0]
+
+        if output_dir:
+            output_path = os.path.join(output_dir, pdf_name)
+        else:
+            output_path = os.path.join(os.path.dirname(temp_pdf_path), pdf_name)
+
+        output_image_path = os.path.join(output_path, 'images')
+
+        images = pdf_to_images(temp_pdf_path, output_path, start_page, end_page, dpi)
+
+        if not images:
+            return {"message": "No images generated"}
+
+        return StreamingResponse(images[0], media_type="image/png",
+                                 headers={
+                                     "Content-Disposition": f"attachment; filename={quote(pdf_file.filename)}.png"})
 
     except Exception as e:
         logger.exception(e)
