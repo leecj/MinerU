@@ -1,6 +1,6 @@
 services:
   edms_ocr:
-    image: registry.cn-hangzhou.aliyuncs.com/sae-build-1097168472679944/edms_ocr:0.0.10.3
+    image: registry.cn-hangzhou.aliyuncs.com/sae-build-1097168472679944/edms_ocr:1.1.0.1.cpu
     container_name: edms_ocr
     tty: true  # -it 相当于这里设置 tty: true 和 stdin_open: true
     stdin_open: true
@@ -15,3 +15,5 @@ services:
       - "10089:8000"  # -p 10089:8000
     volumes:
       - ./magic-pdf.json:/root/magic-pdf.json
+      - ./data/.paddleocr:/root/.paddleocr
+    command: /bin/bash -c "source /opt/mineru_venv/bin/activate && pip3 uninstall paddlepaddle-gpu -y && pip3 install paddlepaddle==3.0.0rc1 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/"

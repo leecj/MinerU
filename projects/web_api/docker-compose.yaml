@@ -1,6 +1,6 @@
 services:
   edms_ocr:
-    image: registry.cn-hangzhou.aliyuncs.com/sae-build-1097168472679944/edms_ocr:0.0.10.5.3
+    image: registry.cn-hangzhou.aliyuncs.com/sae-build-1097168472679944/edms_ocr:1.1.0.1
     container_name: edms_ocr
     tty: true  # -it 相当于这里设置 tty: true 和 stdin_open: true
     stdin_open: true
