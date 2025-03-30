@@ -20,6 +20,8 @@ from magic_pdf.model.doc_analyze_by_custom_model import doc_analyze
 from magic_pdf.operators.models import InferenceResult
 from magic_pdf.operators.pipes import PipeResult
 
+from app.pdf2image import pdf_to_images
+
 model_config.__use_inside_model__ = True
 
 app = FastAPI()
@@ -272,6 +274,46 @@ async def pdf_parse(
     except Exception as e:
         logger.exception(e)
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+app.post('/pdf_2_image', tags=['projects'], summary='Parse PDF file to image')
+async def pdf_parse_to_image(
+        pdf_file: UploadFile = File(...),
+        start_page: int = 0,
+        end_page: int = None,
+        dpi: int = 300,
+        output_dir: str = 'output',
+):
+    try:
+        # Create a temporary file to store the uploaded PDF
+        with NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+            temp_pdf.write(await pdf_file.read())
+            temp_pdf_path = temp_pdf.name
+
+        pdf_name = os.path.basename(pdf_file.filename).split('.')[0]
+
+        if output_dir:
+            output_path = os.path.join(output_dir, pdf_name)
+        else:
+            output_path = os.path.join(os.path.dirname(temp_pdf_path), pdf_name)
+
+        output_image_path = os.path.join(output_path, 'images')
+
+        images = pdf_to_images(temp_pdf_path, output_path, start_page, end_page, dpi)
+
+        if not images:
+            return {"message": "No images generated"}
+
+        return StreamingResponse(images[0], media_type="image/png",
+                                 headers={
+                                     "Content-Disposition": f"attachment; filename={quote(pdf_file.filename)}.png"})
+
+    except Exception as e:
+        logger.exception(e)
+        return JSONResponse(content={'error': str(e)}, status_code=500)
+    finally:
+        # Clean up the temporary file
+        if 'temp_pdf_path' in locals():
+            os.unlink(temp_pdf_path)
 
 
 if __name__ == "__main__":
